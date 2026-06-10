@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # 1. THE MASTER
+  redis-master:
+    image: redis/redis-stack:latest
+    container_name: redis-master
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    volumes:
+      - ./backend-api/infra/redis/master.conf:/usr/local/etc/redis/redis.conf
+      - ./backend-api/infra/redis/users.acl:/usr/local/etc/redis/users.acl
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: always
+
+  # 2. THE REPLICA
+  redis-replica:
+    image: redis:latest
+    container_name: redis-replica
+    depends_on:
+      - redis-master
+    volumes:
+      - ./backend-api/infra/redis/replica.conf:/usr/local/etc/redis/redis.conf
+      - ./backend-api/infra/redis/users.acl:/usr/local/etc/redis/users.acl
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: always
+
+  # 3. THE SENTINELS (3 nodes for Quorum)
+  sentinel-1: &sentinel
+    image: redis:latest
+    container_name: sentinel-1
+    depends_on:
+      - redis-master
+    volumes:
+      - ./backend-api/infra/redis/sentinel.conf:/usr/local/etc/redis/sentinel.conf
+    command: redis-sentinel /usr/local/etc/redis/sentinel.conf
+    restart: always
+
+  sentinel-2:
+    <<: *sentinel
+    container_name: sentinel-2
+
+  sentinel-3:
+    <<: *sentinel
+    container_name: sentinel-3
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: always
+
+volumes:
+  mongo_data:

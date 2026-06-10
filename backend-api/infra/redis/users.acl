@@ -1,0 +1,2 @@
+user admin on >admin_pass ~* &* +@all
+user api_user on >api_pass ~* &* -@all +get +set +incr +expire +eval +pfadd +pfcount +zincrby +zrevrange +del +publish +subscribe +ping +info +command +scan +select +dbsize +type

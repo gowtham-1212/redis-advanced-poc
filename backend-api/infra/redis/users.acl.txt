@@ -1,0 +1,34 @@
+# 1. THE DEFAULT USER
+# By default, Redis has a 'default' user. For security, we disable it.
+# Syntax: user <username> <status> <passwords> <selectors> <commands> <keys> <channels>
+user default off
+
+# 2. THE ADMIN USER
+# This user has full access to everything.
+# >admin_pass : Sets the password to 'admin_pass'
+# on         : Enables the user
+# ~*         : Can access all keys
+# &*         : Can access all Pub/Sub channels
+# +@all      : Can run every command
+user admin on >admin_pass ~* &* +@all
+
+# 3. THE APPLICATION USER (The "Principle of Least Privilege")
+# This is what our Fastify API will use.
+# +get +set +incr +expire +eval : Only allow specific commands we need for our 5 use cases.
+# -@all                        : Block everything else.
+# ~*                           : Access all keys (or pattern like ~product:*)
+user api_user on >api_pass ~* &* -@all +get +set +incr +expire +eval +pfadd +pfcount +zincrby +zrevrange +del +publish +subscribe
+
+# IP WHITELISTING (REDIS 8.x+ SYNTAX)
+
+# 3. POSITIVE SCENARIO: trusted_user
+# Allowed only from 127.0.0.1 (Localhost)
+# Syntax: -ip:* ip:127.0.0.1
+# -ip:* removes the default 'allow all' rule.
+# ip:127.0.0.1 adds the specific whitelist.
+user trusted_user on >trusted_pass ~* +@all -ip:* ip:127.0.0.1
+
+# 4. NEGATIVE SCENARIO: restricted_user
+# Allowed only from a fake IP (e.g., 10.0.0.5)
+# Since you are connecting from localhost, this user will ALWAYS be rejected.
+user restricted_user on >restricted_pass ~* +@all -ip:* ip:10.0.0.5
